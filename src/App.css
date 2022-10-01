@@ -1,0 +1,170 @@
+:root {
+  --green: #599854;
+  --lighterGray: #e2e3e4;
+  --doodleYellow: #fffce5;
+  --doodleRed: #fff4f7;
+  --lightGray: #d1d4d9;
+  --darkGray: #777d81;
+  --darkGrayTransparent: rgba(119, 125, 129, 0.567);
+}
+
+.App {
+  
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  /* align-items: center; */
+  height: 100vh;
+}
+
+.SettingsModal {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  box-sizing: border-box;
+  background-clip: padding-box; /* for IE9+, Firefox 4+, Opera, Chrome */
+  font-size: 22px;
+  border: 18px solid var(--darkGrayTransparent);
+  overflow-y: scroll;
+}
+
+.SettingsHeader {
+  padding: 12px 0 2px;
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+  font-family: 'Alfa Slab One', Tahoma, sans-serif;
+  font-weight: 300;
+  flex: 1;
+}
+
+.SettingsInfo {
+  font-family: Tahoma, sans-serif;
+  margin: 12px 6px 24px;
+  font-size: 14px;
+  line-height: 170%;
+}
+
+.ShareLinkText {
+  font-size: 16px;
+  margin: 12px 6px;
+  word-wrap: break-word;
+  min-height: 54px;
+}
+
+.CopiedText {
+  font-size: 16px;
+  margin: 12px 6px;
+  min-height: 44px;
+}
+
+
+.SettingsButton {
+  background-color: var(--lightGray);
+  color: black;
+  height: 42px;
+  font-size: 18px;
+  padding: 0 22px;
+  border: none;
+}
+
+.SettingsButton:disabled {
+  background-color: var(--lighterGray);
+  color: var(--darkGrayTransparent);
+  height: 42px;
+  font-size: 18px;
+  padding: 0 22px;
+  border: none;
+}
+
+
+.GreenButton {
+  background-color: var(--green);
+  color: black;
+  height: 42px;
+  font-size: 18px;
+  padding: 0 22px;
+  border: none;
+}
+
+.SettingsFooter {
+  margin: 24px 0;
+  display: flex;
+  justify-content: center;
+  column-gap: 12px;
+}
+
+.HeaderSpacer {
+  padding-left: 10px;
+  width: .65em;
+}
+
+.Header {
+  display: flex;
+  font-size: 32px;
+  padding: 4px 6px 8px;
+  font-family: 'Alfa Slab One', Tahoma, sans-serif;
+  border-bottom: 1px solid var(--lightGray);
+}
+
+.HeaderSettings {
+  padding-right: 10px;
+  width: .65em;
+}
+
+.HeaderText {
+  flex: 1;
+}
+
+
+
+
+.DoodlePage {
+  margin: 24px auto;
+  width: 300px;
+  height: 500px;
+  /* max-width: 10vw; */
+}
+
+
+.DoodleCanvasEdit {
+  touch-action: pinch-zoom;
+  background-color: var(--doodleRed);
+  width: 100%;
+  height: 100%;
+}
+
+.DoodleCanvas {
+  touch-action: auto;
+  background-color: var(--doodleYellow);
+  width: 100%;
+  height: 100%;
+}
+
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
