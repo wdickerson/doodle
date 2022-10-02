@@ -40,12 +40,12 @@ const DoodlePage = ({ editEnabled, setEditEnabled }) => {
     }
 
     // get the x and y 
-    const clientX = e.targetTouches[0].clientX;
-    const clientY = e.targetTouches[0].clientY;
+    const pageX = e.targetTouches[0].pageX;
+    const pageY = e.targetTouches[0].pageY;
     const offsetLeft = e.targetTouches[0].target.offsetLeft;
     const offsetTop = e.targetTouches[0].target.offsetTop;
-    const myX = (clientX - offsetLeft) * 2;
-    const myY = (clientY - offsetTop) * 2;
+    const myX = (pageX - offsetLeft) * 2;
+    const myY = (pageY - offsetTop) * 2;
 
     setX(myX);
     setY(myY);
@@ -59,12 +59,15 @@ const DoodlePage = ({ editEnabled, setEditEnabled }) => {
     }
 
     // get the x and y 
-    const clientX = e.targetTouches[0].clientX;
-    const clientY = e.targetTouches[0].clientY;
+    const pageX = e.targetTouches[0].pageX;
+    const pageY = e.targetTouches[0].pageY;
+    // const clientX = e.targetTouches[0].clientX;
+    // const clientY = e.targetTouches[0].clientY;
+    
     const offsetLeft = e.targetTouches[0].target.offsetLeft;
     const offsetTop = e.targetTouches[0].target.offsetTop;
-    const myX = (clientX - offsetLeft) * 2;
-    const myY = (clientY - offsetTop) * 2;
+    const myX = (pageX - offsetLeft) * 2;
+    const myY = (pageY - offsetTop) * 2;
 
     setX(myX);
     setY(myY);
