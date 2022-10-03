@@ -4,13 +4,15 @@ import { ReactComponent as EditPencil } from './EditPencil.svg';
 const GameHeader = ({ showSettings, setShowSettings, editEnabled, setEditEnabled }) => {
   return (
       <div className='Header'>
+
+        <div className='HeaderSpacer'></div>
+        <div className='HeaderText'>Dickerdoodle</div>
         <div className='HeaderSettings' onClick={() => setShowSettings(true)}>
           {!showSettings && <SettingsCog />}
         </div>
-        <div className='HeaderText'>Dickerdoodle</div>
-        <div className='HeaderSettings' onClick={() => setEditEnabled(true)}>
+        {/* <div className='HeaderSettings' onClick={() => setEditEnabled(true)}>
           {!editEnabled && <EditPencil />}
-        </div>
+        </div> */}
       </div>
   );
 };

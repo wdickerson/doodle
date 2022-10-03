@@ -7,9 +7,10 @@ import DoodlePage from './DoodlePage.js';
 import React, {useState} from 'react';
 
 function App() {
-  // const urlSearchParams = new URLSearchParams(window.location.search);
-  // const params = Object.fromEntries(urlSearchParams.entries());
-  
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const params = Object.fromEntries(urlSearchParams.entries());
+  const doodleId = params['d'] || '';
+
 
   const [showSettings, setShowSettings] = useState(false);
   const [editEnabled, setEditEnabled] = useState(false);
@@ -33,7 +34,11 @@ function App() {
         editEnabled={editEnabled}
         setEditEnabled={setEditEnabled}
       />
-      <DoodlePage editEnabled={editEnabled} setEditEnabled={setEditEnabled} />
+      <DoodlePage 
+        editEnabled={editEnabled} 
+        setEditEnabled={setEditEnabled} 
+        doodleId={doodleId}
+      />
     </div>
   );
 }
