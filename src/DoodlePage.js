@@ -1,4 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
+// import { useSearchParams } from 'react-router-dom';
+
 
 const API_HOST = process.env.REACT_APP_DOODLE_API_HOST;
 
@@ -9,15 +11,22 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
   const currentDoodle = useRef([]);
-  const allDoodles = useRef([]);
+  const [fetchedDoodles, setFetchedDoodles] = useState([]);
+  const [postPending, setPostPending] = useState(false);
+
+  useEffect(() => {
+    // lets fetch doodles
+    if (doodleId) {
+      console.log('HERE!!! lets fetch')
+      getDoodles();
+    }
+  }, []);
 
   useEffect(() => {
     if (myCanvas.current) {
       setCtx(myCanvas.current.getContext('2d'));
     }
   }, [myCanvas]);
-
-
 
   const getDoodles = () => {
     if (!doodleId) {
@@ -32,6 +41,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       },
     }).then(res => res.json()).then((response) => {
         console.log('got doodles')
+        // console.log(response)
+        setFetchedDoodles(response.doodles);
         // setFetchedPhotos(searchResponse.results || []);
         // setSearchPending(false);
       },
@@ -44,32 +55,66 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
 
-
-
   const postDoodle = (doodle) => {
-    // setUploadPending(true);
+    setPostPending(true);
     fetch(`${API_HOST}/doodles/${doodleId}`, {
       method: 'POST',
-      // headers: {
-      //   // 'custom-labels': customLabelText,
-      // },
       body: JSON.stringify(doodle)
-    }).then(res => res.text()).then((result) => {
-        console.log('doodle posted');
-
-        // fileInput.current.value = null;
-        // setSelectedFile(null);
-        // setPreviewDataUrl(null);
-        // setUploadPending(false);
-        // setCustomLabelText('');
+    }).then(res => res.json()).then((response) => {
+        setFetchedDoodles(response.doodles);
+        if (window.history.replaceState) {
+          const newurl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?d=${response.doodle_id}`;
+          window.history.replaceState({ path: newurl }, '', newurl);
+        }
+        setPostPending(false);
       },
       (err) => {
         console.log('There was an error posting doodle');
         console.log(err);
-        // setUploadPending(false);
+        setPostPending(false);
       }
     );
   }
+
+
+  const shareUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}${window.location.search}`;
+
+  const shareDetails = { 
+    url: shareUrl, 
+    title: 'Dickerdoodle!', 
+    text: 'Check out the doodles!'
+  }
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share(shareDetails);
+      } catch (error) {
+        navigator.clipboard.writeText(shareUrl);
+        // setCopiedToClipboard(true);
+      }
+    } else {
+      // fallback code
+      navigator.clipboard.writeText(shareUrl);
+      // setCopiedToClipboard(true);
+    }
+  };
+
+
+
+  const handleNew = () => {
+    if (window.history.replaceState) {
+      const newurl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+      window.history.replaceState({ path: newurl }, '', newurl);
+    }
+    setFetchedDoodles([]);
+
+    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+
+    // reDraw();
+    // currentDoodle.current = [];
+  };
+
 
 
 
@@ -156,19 +201,18 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const handleDone = () => {
     if (currentDoodle.current.length > 0) {
       // post your doodle!
-      // postDoodle(currentDoodle.current);
-
-      allDoodles.current.push(currentDoodle.current);
+      postDoodle(currentDoodle.current);
       currentDoodle.current = [];
     }
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+
     setEditEnabled(false);
   }
 
   const fastReDraw = () => {
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
 
-    allDoodles.current.forEach((doodle, i) => {
+    fetchedDoodles.forEach((doodle, i) => {
       doodle.forEach((step, j) => {
         const rX = step[0];
         const rY = step[1];
@@ -177,7 +221,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         ctx.beginPath(); // begin
         ctx.lineWidth = 1;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = '#898989';
+        // ctx.strokeStyle = '#000000';
         ctx.moveTo(rX, rY); // from
         ctx.lineTo(rNewX, rNewY); // to
         ctx.stroke(); // draw it!
@@ -190,11 +235,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
 
     const timeDelays = [0]
-    allDoodles.current.forEach((doodle, i) => {
+    fetchedDoodles.forEach((doodle, i) => {
       timeDelays.push(timeDelays[i] + (doodle.length * 5));
     });
 
-    allDoodles.current.forEach((doodle, i) => {
+    fetchedDoodles.forEach((doodle, i) => {
       setTimeout(() => {
         doodle.forEach((step, j) => {
           setTimeout(() => {
@@ -215,12 +260,16 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     })
   }
 
-  let countText = 'There are no doodles yet!';
-  if (allDoodles.current.length === 1) {
-    countText = "There's 1 doodle! Click below to see it.";
-  }
-  if (allDoodles.current.length > 1) {
-    countText = `There are ${allDoodles.current.length} doodles! Click below to see them.`
+  let infoText = 'There are no doodles yet!';
+
+  if (editEnabled) {
+    infoText = '';
+  } else if (postPending) {
+    infoText = 'Beautiful! Please wait.';
+  } else if (fetchedDoodles.length === 1) {
+    infoText = "There's 1 doodle! Click below to see it.";
+  } else if (fetchedDoodles.length > 1) {
+    infoText = `There are ${fetchedDoodles.length} doodles! Click below to see them.`
   }
 
   return (
@@ -236,37 +285,69 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-        >
+        />
 
-        </canvas>
+        <p>{infoText}</p>
+
         {editEnabled && (
           <>
-          <button onClick={handleReset}>
+          <button 
+            className='SettingsButton'
+            onClick={handleReset}
+          >
             Reset
           </button>
           <span>&nbsp;</span>
           </>
         )}
         {editEnabled && (
-          <button onClick={handleDone}>
+          <button 
+            className='SettingsButton GreenButton'
+            onClick={handleDone}
+          >
             Done!
           </button>
         )}
 
-        {!editEnabled && <p>{countText}</p>}
-
         {!editEnabled && (
           <>
-            <button onClick={handleAdd}>
-              Add a Doodle!
+            <button 
+              className='SettingsButton'
+              onClick={handleAdd}
+            >
+              Add a Doodle
             </button>
             <span>&nbsp;</span>
           </>
         )}
 
-        {!editEnabled && allDoodles.current.length > 0 && (
-          <button onClick={reDraw}>
+        {!editEnabled && fetchedDoodles.length > 0 && (
+          <button 
+            className='SettingsButton'
+            onClick={reDraw}
+          >
             See the Doodles!
+          </button>
+        )}
+        <p></p>
+        
+        {!editEnabled && (
+          <button 
+            className='SettingsButton'
+            onClick={handleShare}
+            disabled={!fetchedDoodles || fetchedDoodles.length === 0}
+          >
+            Share this Dickerdoodle!
+          </button>
+        )}
+
+        <p></p>
+        {!editEnabled && (
+          <button 
+            className='SettingsButton'
+            onClick={handleNew}
+          >
+            Start a new Dickerdoodle
           </button>
         )}
 

@@ -11,10 +11,8 @@ function App() {
   const params = Object.fromEntries(urlSearchParams.entries());
   const doodleId = params['d'] || '';
 
-
   const [showSettings, setShowSettings] = useState(false);
   const [editEnabled, setEditEnabled] = useState(false);
-
 
   return (
     <div className="App">

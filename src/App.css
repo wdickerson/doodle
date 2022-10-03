@@ -1,19 +1,18 @@
 :root {
   --green: #599854;
+  --shadowGray: #ececdd;
   --lighterGray: #e2e3e4;
   --doodleYellow: #fffce5;
   --doodleRed: #fff4f7;
   --lightGray: #d1d4d9;
-  --darkGray: #777d81;
+  --darkGray: #898989;
   --darkGrayTransparent: rgba(119, 125, 129, 0.567);
 }
 
 .App {
-  
   display: flex;
   flex-direction: column;
   text-align: center;
-  /* align-items: center; */
   height: 100vh;
 }
 
@@ -61,27 +60,22 @@
 
 
 .SettingsButton {
-  background-color: var(--lightGray);
+  background-color: var(--lighterGray);
   color: black;
-  height: 42px;
-  font-size: 18px;
-  padding: 0 22px;
+  height: 34px;
+  font-size: 16px;
+  padding: 0 8px;
   border: none;
+  border-radius: 4px;
+}
+
+.GreenButton {
+  background-color: var(--green);
 }
 
 .SettingsButton:disabled {
   background-color: var(--lighterGray);
   color: var(--darkGrayTransparent);
-  height: 42px;
-  font-size: 18px;
-  padding: 0 22px;
-  border: none;
-}
-
-
-.GreenButton {
-  background-color: var(--green);
-  color: black;
   height: 42px;
   font-size: 18px;
   padding: 0 22px;
@@ -117,31 +111,28 @@
   flex: 1;
 }
 
-
-
-
 .DoodlePage {
   margin: 24px auto;
   width: 300px;
-  height: 500px;
-  /* max-width: 10vw; */
+  /* height: 500px; */
+  padding: 0 0 40px;
 }
-
 
 .DoodleCanvasEdit {
   touch-action: pinch-zoom;
-  background-color: var(--doodleRed);
+  box-shadow: 0 0 4px 1px var(--shadowGray);
+  border-radius: 1px;
+  background-color: var(--doodleYellow);
   width: 100%;
-  height: 100%;
 }
 
 .DoodleCanvas {
   touch-action: auto;
+  box-shadow: 0 0 4px 1px var(--shadowGray);
+  border-radius: 1px;
   background-color: var(--doodleYellow);
   width: 100%;
-  height: 100%;
 }
-
 
 .App-logo {
   height: 40vmin;
