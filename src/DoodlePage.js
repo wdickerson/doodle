@@ -1,6 +1,4 @@
 import { useRef, useEffect, useState } from 'react'
-// import { useSearchParams } from 'react-router-dom';
-
 
 const API_HOST = process.env.REACT_APP_DOODLE_API_HOST;
 
@@ -54,7 +52,6 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     );
   }
 
-
   const postDoodle = (doodle) => {
     setPostPending(true);
     fetch(`${API_HOST}/doodles/${doodleId}`, {
@@ -63,7 +60,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     }).then(res => res.json()).then((response) => {
         setFetchedDoodles(response.doodles);
         if (window.history.replaceState) {
-          const newurl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?d=${response.doodle_id}`;
+          const newurl = `${window.location.protocol}//${window.location.host}/${response.doodle_id}`;
           window.history.replaceState({ path: newurl }, '', newurl);
         }
         setPostPending(false);
@@ -76,9 +73,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     );
   }
 
-
   const shareUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}${window.location.search}`;
-
   const shareDetails = { 
     url: shareUrl, 
     title: 'Dickerdoodle!', 
@@ -104,19 +99,12 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   const handleNew = () => {
     if (window.history.replaceState) {
-      const newurl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+      const newurl = `${window.location.protocol}//${window.location.host}`;
       window.history.replaceState({ path: newurl }, '', newurl);
     }
     setFetchedDoodles([]);
-
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
-
-    // reDraw();
-    // currentDoodle.current = [];
   };
-
-
-
 
 
   const handleMouseMove = (e) => {
@@ -265,11 +253,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   if (editEnabled) {
     infoText = '';
   } else if (postPending) {
-    infoText = 'Beautiful! Please wait.';
+    infoText = 'Beautiful! Please wait';
   } else if (fetchedDoodles.length === 1) {
-    infoText = "There's 1 doodle! Click below to see it.";
+    infoText = "There's 1 doodle! Click below to see it";
   } else if (fetchedDoodles.length > 1) {
-    infoText = `There are ${fetchedDoodles.length} doodles! Click below to see them.`
+    infoText = `There are ${fetchedDoodles.length} doodles! Click below to see them`
   }
 
   return (
@@ -333,7 +321,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         
         {!editEnabled && (
           <button 
-            className='SettingsButton'
+            className='SettingsButton GreenButton'
             onClick={handleShare}
             disabled={!fetchedDoodles || fetchedDoodles.length === 0}
           >
@@ -341,16 +329,35 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           </button>
         )}
 
-        <p></p>
         {!editEnabled && (
-          <button 
-            className='SettingsButton'
-            onClick={handleNew}
-          >
-            Start a new Dickerdoodle
-          </button>
+          <>
+            <p className='HelpTitle'>How to Play</p>
+            {
+              fetchedDoodles.length > 0 && (
+                <p className='HelpText'>Tap "See the doodles" to see what others have drawn</p>
+              )
+            }
+            <p className='HelpText'>
+              Tap "Add a doodle" and draw a new doodle 
+              <strong>. Tip:</strong> Zoom in for easier doodling
+            </p>
+            <p className='HelpText'>
+              Tap "Share this Dickerdoodle" and send it to a friend! 
+            </p>
+            <button className='SettingsButton' onClick={handleNew}>
+              Start a new Dickerdoodle
+            </button>
+            <p className='FooterText'>
+              Created by William Dickerson 
+              <a class="link" href="https://github.com/wdickerson">
+                  <i class="fa fa-github"></i>
+              </a>
+              <a class="link" href="https://www.linkedin.com/in/wdickerson08">
+                  <i class="fa fa-linkedin-square"></i>
+              </a> 
+            </p>
+          </>
         )}
-
       </div>
   );
 };
