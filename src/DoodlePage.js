@@ -77,7 +77,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const shareDetails = { 
     url: shareUrl, 
     title: 'Dickerdoodle!', 
-    text: 'Check out the doodles!'
+    text: 'See the doodles and add your own!'
   }
 
   const handleShare = async () => {
