@@ -148,8 +148,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     const pageY = e.targetTouches[0].pageY;
     const offsetLeft = e.targetTouches[0].target.offsetLeft;
     const offsetTop = e.targetTouches[0].target.offsetTop;
-    const myX = (pageX - offsetLeft) * 2;
-    const myY = (pageY - offsetTop) * 2;
+    const myX = parseInt((pageX - offsetLeft) * 2);
+    const myY = parseInt((pageY - offsetTop) * 2);
 
     setX(myX);
     setY(myY);
@@ -168,8 +168,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     
     const offsetLeft = e.targetTouches[0].target.offsetLeft;
     const offsetTop = e.targetTouches[0].target.offsetTop;
-    const myX = (pageX - offsetLeft) * 2;
-    const myY = (pageY - offsetTop) * 2;
+    const myX = parseInt((pageX - offsetLeft) * 2);
+    const myY = parseInt((pageY - offsetTop) * 2);
 
     setX(myX);
     setY(myY);

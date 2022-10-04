@@ -6,7 +6,7 @@ const GameHeader = ({ showSettings, setShowSettings, editEnabled, setEditEnabled
       <div className='Header'>
 
         <div className='HeaderSpacer'></div>
-        <div className='HeaderText'>Dickerdoodle</div>
+        <div className='HeaderText'>Dickerdoodle!</div>
         <div className='HeaderSettings' onClick={() => setShowSettings(true)}>
           {!showSettings && <SettingsCog />}
         </div>
