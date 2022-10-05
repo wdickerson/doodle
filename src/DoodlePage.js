@@ -8,7 +8,9 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [ctx, setCtx] = useState(null);
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
+  const [undoAvailable, setUndoAvailable] = useState(false);
   const currentDoodle = useRef([]);
+  const currentDoodleStartIndexes = useRef([]);
   const [fetchedDoodles, setFetchedDoodles] = useState([]);
   const [postPending, setPostPending] = useState(false);
 
@@ -107,6 +109,12 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   };
 
 
+  const handleMouseDown = () => {
+    if (!editEnabled) return;
+    currentDoodleStartIndexes.current.push(currentDoodle.current.length);
+    setUndoAvailable(true);
+  }
+
   const handleMouseMove = (e) => {
     if (!editEnabled) return;
     const myX = e.nativeEvent.offsetX * 2;
@@ -141,6 +149,9 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
     setX(myX);
     setY(myY);
+
+    currentDoodleStartIndexes.current.push(currentDoodle.current.length);
+    setUndoAvailable(true);
   }
 
   const handleTouchMove = (e) => {
@@ -172,14 +183,39 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     ctx.moveTo(x, y); // from
     ctx.lineTo(newX, newY); // to
     ctx.stroke(); // draw it!
-    currentDoodle.current.push([x, y, newX, newY])
+    currentDoodle.current.push([x, y, newX, newY]);
   }
 
-  const handleReset = () => {
-    currentDoodle.current = [];
+  const handleUndo = () => {
+    const lastStrokeEndIndex = currentDoodleStartIndexes.current.pop();
+    currentDoodle.current = currentDoodle.current.splice(0, lastStrokeEndIndex);
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
     fastReDraw();
+
+    currentDoodle.current.forEach((step) => {
+      const rX = step[0];
+      const rY = step[1];
+      const rNewX = step[2];
+      const rNewY = step[3];
+      ctx.beginPath(); // begin
+      ctx.lineWidth = 1;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000000';
+      ctx.moveTo(rX, rY); // from
+      ctx.lineTo(rNewX, rNewY); // to
+      ctx.stroke(); // draw it!
+    })
+
+    if (currentDoodle.current.length < 1) {
+      setUndoAvailable(false);
+    }
   }
+
+  // const handleReset = () => {
+  //   currentDoodle.current = [];
+  //   ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+  //   fastReDraw();
+  // }
 
   const handleAdd = () => {
     setEditEnabled(true);
@@ -269,6 +305,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           width="600" 
           height="1000"
           className={editEnabled ? 'DoodleCanvasEdit' : 'DoodleCanvas'}
+          onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -281,13 +318,25 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           <>
           <button 
             className='SettingsButton'
+            onClick={handleUndo}
+            disabled={!undoAvailable}
+          >
+            Undo
+          </button>
+          <span>&nbsp;</span>
+          </>
+        )}
+        {/* {editEnabled && (
+          <>
+          <button 
+            className='SettingsButton'
             onClick={handleReset}
           >
             Reset
           </button>
           <span>&nbsp;</span>
           </>
-        )}
+        )} */}
         {editEnabled && (
           <button 
             className='SettingsButton GreenButton'
@@ -349,11 +398,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
             </button>
             <p className='FooterText'>
               Created by William Dickerson 
-              <a class="link" href="https://github.com/wdickerson">
-                  <i class="fa fa-github"></i>
+              <a className="link" href="https://github.com/wdickerson">
+                  <i className="fa fa-github"></i>
               </a>
-              <a class="link" href="https://www.linkedin.com/in/wdickerson08">
-                  <i class="fa fa-linkedin-square"></i>
+              <a className="link" href="https://www.linkedin.com/in/wdickerson08">
+                  <i className="fa fa-linkedin-square"></i>
               </a> 
             </p>
           </>
