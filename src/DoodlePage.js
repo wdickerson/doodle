@@ -2,16 +2,33 @@ import { useRef, useEffect, useState } from 'react'
 
 const API_HOST = process.env.REACT_APP_DOODLE_API_HOST;
 
+/********* 
+colors
+black: #000000
+blue: #0000FF
+red: #FF0000
+green: #008000
+yellow: #FFFF00
+**********/
+
+const BLACK = '#000000';
+const BLUE = '#0000FF';
+const RED = '#FF0000';
+const GREEN = '#008000';
+const YELLOW = '#DDCB00';
+
 const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const myCanvas = useRef(null);
   const [holdForPan, setHoldForPan] = useState(false);
   const [ctx, setCtx] = useState(null);
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
+  const [selectedColor, setSelectedColor] = useState(BLACK);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const currentDoodle = useRef([]);
   const currentDoodleStartIndexes = useRef([]);
   const [fetchedDoodles, setFetchedDoodles] = useState([]);
+  const [fetchPending, setFetchPending] = useState(false);
   const [postPending, setPostPending] = useState(false);
 
   useEffect(() => {
@@ -32,14 +49,15 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     if (!doodleId) {
       return;
     }
-    // setSearchPending(true);
-
+    setFetchPending(true);
+    
     fetch(`${API_HOST}/doodles/${doodleId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
     }).then(res => res.json()).then((response) => {
+      setFetchPending(false);
         console.log('got doodles')
         // console.log(response)
         setFetchedDoodles(response.doodles);
@@ -47,9 +65,15 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         // setSearchPending(false);
       },
       (err) => {
+        setFetchPending(false);
         console.log('There was an error getting doodles');
         console.log(err);
-        // setSearchPending(false);     
+
+        // For now, if we get an error, assume the ID is bad and redirect
+        if (window.history.replaceState) {
+          const newurl = `${window.location.protocol}//${window.location.host}`;
+          window.history.replaceState({ path: newurl }, '', newurl);
+        }
       }
     );
   }
@@ -61,6 +85,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       body: JSON.stringify(doodle)
     }).then(res => res.json()).then((response) => {
         setFetchedDoodles(response.doodles);
+        ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+
         if (window.history.replaceState) {
           const newurl = `${window.location.protocol}//${window.location.host}/${response.doodle_id}`;
           window.history.replaceState({ path: newurl }, '', newurl);
@@ -177,13 +203,13 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   const draw = (newX, newY) => {
     ctx.beginPath(); // begin
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#000000';
+    ctx.strokeStyle = selectedColor;
     ctx.moveTo(x, y); // from
     ctx.lineTo(newX, newY); // to
     ctx.stroke(); // draw it!
-    currentDoodle.current.push([x, y, newX, newY]);
+    currentDoodle.current.push([x, y, newX, newY, selectedColor]);
   }
 
   const handleUndo = () => {
@@ -192,30 +218,12 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
     fastReDraw();
 
-    currentDoodle.current.forEach((step) => {
-      const rX = step[0];
-      const rY = step[1];
-      const rNewX = step[2];
-      const rNewY = step[3];
-      ctx.beginPath(); // begin
-      ctx.lineWidth = 1;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#000000';
-      ctx.moveTo(rX, rY); // from
-      ctx.lineTo(rNewX, rNewY); // to
-      ctx.stroke(); // draw it!
-    })
+    reDrawCurrentDoodle();
 
     if (currentDoodle.current.length < 1) {
       setUndoAvailable(false);
     }
   }
-
-  // const handleReset = () => {
-  //   currentDoodle.current = [];
-  //   ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
-  //   fastReDraw();
-  // }
 
   const handleAdd = () => {
     setEditEnabled(true);
@@ -223,14 +231,40 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const handleDone = () => {
+    setEditEnabled(false);
+
     if (currentDoodle.current.length > 0) {
       // post your doodle!
       postDoodle(currentDoodle.current);
       currentDoodle.current = [];
+    } else {
+      ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
     }
-    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+  }
 
-    setEditEnabled(false);
+  const changeColor = (newColor) => {
+    setSelectedColor(newColor);
+    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+    fastReDraw();
+    reDrawCurrentDoodle(newColor);
+  }
+
+  const reDrawCurrentDoodle = (newColor = null) => {
+    currentDoodle.current.forEach((step) => {
+      if (newColor) step[4] = newColor;
+      const rX = step[0];
+      const rY = step[1];
+      const rNewX = step[2];
+      const rNewY = step[3];
+      const hexColor = step[4] || '#000000';
+      ctx.beginPath(); // begin
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = hexColor;
+      ctx.moveTo(rX, rY); // from
+      ctx.lineTo(rNewX, rNewY); // to
+      ctx.stroke(); // draw it!
+    })
   }
 
   const fastReDraw = () => {
@@ -242,10 +276,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         const rY = step[1];
         const rNewX = step[2];
         const rNewY = step[3];
+        const hexColor = step[4] || '#000000';
         ctx.beginPath(); // begin
         ctx.lineWidth = 1;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = '#898989';
+        ctx.strokeStyle = hexColor;
         // ctx.strokeStyle = '#000000';
         ctx.moveTo(rX, rY); // from
         ctx.lineTo(rNewX, rNewY); // to
@@ -271,10 +306,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
             const rY = step[1];
             const rNewX = step[2];
             const rNewY = step[3];
+            const hexColor = step[4] || '#000000';
             ctx.beginPath(); // begin
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 2;
             ctx.lineCap = 'round';
-            ctx.strokeStyle = '#000000';
+            ctx.strokeStyle = hexColor;
             ctx.moveTo(rX, rY); // from
             ctx.lineTo(rNewX, rNewY); // to
             ctx.stroke(); // draw it!
@@ -288,6 +324,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   if (editEnabled) {
     infoText = '';
+  } else if (fetchPending) {
+    infoText = 'Looking for doodles...';
   } else if (postPending) {
     infoText = 'Beautiful! Please wait';
   } else if (fetchedDoodles.length === 1) {
@@ -316,34 +354,33 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
         {editEnabled && (
           <>
-          <button 
-            className='SettingsButton'
-            onClick={handleUndo}
-            disabled={!undoAvailable}
-          >
-            Undo
-          </button>
-          <span>&nbsp;</span>
+            <div className='ColorSelectors'>
+              {selectedColor === BLACK && <div className='ColorSelector ColorBlack ColorSelected' />}
+              {selectedColor !== BLACK && <div className='ColorSelector ColorBlack' onClick={() => changeColor(BLACK)} />}
+              {selectedColor === BLUE && <div className='ColorSelector ColorBlue ColorSelected' />}
+              {selectedColor !== BLUE && <div className='ColorSelector ColorBlue' onClick={() => changeColor(BLUE)} />}
+              {selectedColor === RED && <div className='ColorSelector ColorRed ColorSelected' />}
+              {selectedColor !== RED && <div className='ColorSelector ColorRed' onClick={() => changeColor(RED)} />}
+              {selectedColor === GREEN && <div className='ColorSelector ColorGreen ColorSelected' />}
+              {selectedColor !== GREEN && <div className='ColorSelector ColorGreen' onClick={() => changeColor(GREEN)} />}
+              {selectedColor === YELLOW && <div className='ColorSelector ColorYellow ColorSelected' />}
+              {selectedColor !== YELLOW && <div className='ColorSelector ColorYellow' onClick={() => changeColor(YELLOW)} />}
+            </div>
+            <button 
+              className='SettingsButton'
+              onClick={handleUndo}
+              disabled={!undoAvailable}
+            >
+              Undo
+            </button>
+            <span>&nbsp;</span>
+            <button 
+              className='SettingsButton GreenButton'
+              onClick={handleDone}
+            >
+              Done!
+            </button>
           </>
-        )}
-        {/* {editEnabled && (
-          <>
-          <button 
-            className='SettingsButton'
-            onClick={handleReset}
-          >
-            Reset
-          </button>
-          <span>&nbsp;</span>
-          </>
-        )} */}
-        {editEnabled && (
-          <button 
-            className='SettingsButton GreenButton'
-            onClick={handleDone}
-          >
-            Done!
-          </button>
         )}
 
         {!editEnabled && (
@@ -351,6 +388,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
             <button 
               className='SettingsButton'
               onClick={handleAdd}
+              disabled={fetchPending || postPending}
             >
               Add a Doodle
             </button>
@@ -362,6 +400,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           <button 
             className='SettingsButton'
             onClick={reDraw}
+            disabled={fetchPending || postPending}
           >
             See the Doodles!
           </button>
