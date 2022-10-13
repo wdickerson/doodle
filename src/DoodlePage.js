@@ -62,7 +62,15 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       setFetchPending(false);
         console.log('got doodles')
         // console.log(response)
-        setFetchedDoodles(response.doodles);
+        if (response.doodles) {
+          setFetchedDoodles(response.doodles);
+        } else {
+          // For now, if we get an error, assume the ID is bad and redirect
+          if (window.history.replaceState) {
+            const newurl = `${window.location.protocol}//${window.location.host}`;
+            window.history.replaceState({ path: newurl }, '', newurl);
+          }
+        }
         // setFetchedPhotos(searchResponse.results || []);
         // setSearchPending(false);
       },
@@ -136,11 +144,24 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
   };
 
+  const recordStrokeForUndo = () => {
+    if (currentDoodleStartIndexes.current.length == 0) {
+      currentDoodleStartIndexes.current.push(currentDoodle.current.length);
+    } else {
+      const lastRecordedIndex = currentDoodleStartIndexes.current[currentDoodleStartIndexes.current.length - 1];
+      if (lastRecordedIndex !== currentDoodle.current.length) {
+        currentDoodleStartIndexes.current.push(currentDoodle.current.length);
+      }
+    }
+    setUndoAvailable(true);
+  }
+
 
   const handleMouseDown = () => {
     if (!editEnabled) return;
-    currentDoodleStartIndexes.current.push(currentDoodle.current.length);
-    setUndoAvailable(true);
+    recordStrokeForUndo();
+    // currentDoodleStartIndexes.current.push(currentDoodle.current.length);
+    // setUndoAvailable(true);
   }
 
   const handleMouseMove = (e) => {
@@ -178,8 +199,9 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     setX(myX);
     setY(myY);
 
-    currentDoodleStartIndexes.current.push(currentDoodle.current.length);
-    setUndoAvailable(true);
+    recordStrokeForUndo();
+    // currentDoodleStartIndexes.current.push(currentDoodle.current.length);
+    // setUndoAvailable(true);
   }
 
   const handleTouchMove = (e) => {
@@ -404,6 +426,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
             >
               Done!
             </button>
+            <p className='ZoomText'>Zoom in for easier doodling!</p>
           </>
         )}
 
