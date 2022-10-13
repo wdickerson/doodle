@@ -84,7 +84,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       method: 'POST',
       body: JSON.stringify(doodle)
     }).then(res => res.json()).then((response) => {
-        setFetchedDoodles(response.doodles);
+        if (response.doodles) setFetchedDoodles(response.doodles);
         ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
 
         if (window.history.replaceState) {
@@ -201,7 +201,27 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     if (!holdForPan) draw(myX, myY);
   }
 
+  const isRepeatedStroke = newStroke => {
+    if (!currentDoodle.current) return false;
+    if (currentDoodle.current.length === 0) return false;
+    const previousStroke = currentDoodle.current[currentDoodle.current.length - 1];
+    if (previousStroke[0] !== newStroke[0]) return false;
+    if (previousStroke[1] !== newStroke[1]) return false;
+    if (previousStroke[2] !== newStroke[2]) return false;
+    if (previousStroke[3] !== newStroke[3]) return false;
+    if (previousStroke[4] !== newStroke[4]) return false;
+    return true;
+  }
+
   const draw = (newX, newY) => {
+    if (currentDoodle.current.length >= 1000) {
+      return;
+    }
+
+    if (isRepeatedStroke([x, y, newX, newY, selectedColor])) {
+      return;
+    }
+
     ctx.beginPath(); // begin
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
