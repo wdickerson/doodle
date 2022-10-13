@@ -17,6 +17,8 @@ const RED = '#FF0000';
 const GREEN = '#008000';
 const YELLOW = '#DDCB00';
 
+const MAX_ALLOWED_DOODLES = 20;
+
 const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const myCanvas = useRef(null);
   const [holdForPan, setHoldForPan] = useState(false);
@@ -253,7 +255,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const handleDone = () => {
     setEditEnabled(false);
 
-    if (currentDoodle.current.length > 0) {
+    if (currentDoodle.current.length > 0 && fetchedDoodles.length < MAX_ALLOWED_DOODLES) {
       // post your doodle!
       postDoodle(currentDoodle.current);
       currentDoodle.current = [];
@@ -350,9 +352,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     infoText = 'Beautiful! Please wait';
   } else if (fetchedDoodles.length === 1) {
     infoText = "There's 1 doodle! Click below to see it";
+  } else if (fetchedDoodles.length >= MAX_ALLOWED_DOODLES) {
+    infoText = `This Dickerdoodle is full! Click below to see the doodles`
   } else if (fetchedDoodles.length > 1) {
     infoText = `There are ${fetchedDoodles.length} doodles! Click below to see them`
-  }
+  } 
 
   return (
       <div 
@@ -408,7 +412,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
             <button 
               className='SettingsButton'
               onClick={handleAdd}
-              disabled={fetchPending || postPending}
+              disabled={fetchPending || postPending || fetchedDoodles.length >= MAX_ALLOWED_DOODLES}
             >
               Add a Doodle
             </button>
