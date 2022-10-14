@@ -17,7 +17,7 @@ const RED = '#FF0000';
 const GREEN = '#008000';
 const YELLOW = '#DDCB00';
 
-const MAX_ALLOWED_DOODLES = 20;
+const MAX_ALLOWED_DOODLES = 16;
 
 const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const myCanvas = useRef(null);
@@ -238,7 +238,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const draw = (newX, newY) => {
-    if (currentDoodle.current.length >= 1000) {
+    if (currentDoodle.current.length >= 750) {
       return;
     }
 
