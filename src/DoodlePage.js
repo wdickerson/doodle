@@ -29,6 +29,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [undoAvailable, setUndoAvailable] = useState(false);
   const currentDoodle = useRef([]);
   const currentGesture = useRef([]);
+  const dampener = useRef(0);
   const [fetchedDoodles, setFetchedDoodles] = useState([]);
   const [fetchPending, setFetchPending] = useState(false);
   const [postPending, setPostPending] = useState(false);
@@ -141,7 +142,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
   };
 
-  const recordStrokeForUndo = () => {
+  const recordGestureForUndo = () => {
     if (currentGesture.current.length > 0) {
       currentDoodle.current.push(currentGesture.current);
       currentGesture.current = [];
@@ -149,8 +150,15 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     }
   }
 
+  const dampen = () => {
+    dampener.current++;
+    if (dampener.current % 2 === 0) return false;
+    return true
+  }
+
   const handleMouseMove = (e) => {
     if (!editEnabled) return;
+    if (dampen()) return;
     const myX = e.nativeEvent.offsetX * 2;
     const myY = e.nativeEvent.offsetY * 2;
     setX(myX);
@@ -161,7 +169,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   const handleTouchEnd = (e) => {
     if (editEnabled && !holdForPan) {
-      recordStrokeForUndo();
+      recordGestureForUndo();
     }
 
     if (e.targetTouches.length === 0) {
@@ -172,7 +180,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   const handleMouseUp = (e) => {
     if (editEnabled) {
-      recordStrokeForUndo();
+      recordGestureForUndo();
     }
   }
 
@@ -201,6 +209,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       setHoldForPan(true);
       return;
     }
+    if (dampen()) return;
 
     // get the x and y 
     const pageX = e.targetTouches[0].pageX;
@@ -217,9 +226,9 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const isRepeatedStroke = newStroke => {
-    if (!currentDoodle.current) return false;
-    if (currentDoodle.current.length === 0) return false;
-    const previousStroke = currentDoodle.current[currentDoodle.current.length - 1];
+    if (!currentGesture.current) return false;
+    if (currentGesture.current.length === 0) return false;
+    const previousStroke = currentGesture.current[currentGesture.current.length - 1];
     if (previousStroke[0] !== newStroke[0]) return false;
     if (previousStroke[1] !== newStroke[1]) return false;
     if (previousStroke[2] !== newStroke[2]) return false;
@@ -378,7 +387,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         className='DoodlePage'
       >
         <canvas 
-          ref={myCanvas} 
+          ref={myCanvas}
           width="600" 
           height="1000"
           className={editEnabled ? 'DoodleCanvasEdit' : 'DoodleCanvas'}
