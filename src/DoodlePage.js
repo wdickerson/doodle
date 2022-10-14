@@ -28,7 +28,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [selectedColor, setSelectedColor] = useState(BLACK);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const currentDoodle = useRef([]);
-  const currentDoodleStartIndexes = useRef([]);
+  const currentGesture = useRef([]);
   const [fetchedDoodles, setFetchedDoodles] = useState([]);
   const [fetchPending, setFetchPending] = useState(false);
   const [postPending, setPostPending] = useState(false);
@@ -36,7 +36,6 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   useEffect(() => {
     // lets fetch doodles
     if (doodleId) {
-      console.log('HERE!!! lets fetch')
       getDoodles();
     }
   }, []);
@@ -60,8 +59,6 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       },
     }).then(res => res.json()).then((response) => {
       setFetchPending(false);
-        console.log('got doodles')
-        // console.log(response)
         if (response.doodles) {
           setFetchedDoodles(response.doodles);
         } else {
@@ -145,23 +142,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   };
 
   const recordStrokeForUndo = () => {
-    if (currentDoodleStartIndexes.current.length == 0) {
-      currentDoodleStartIndexes.current.push(currentDoodle.current.length);
-    } else {
-      const lastRecordedIndex = currentDoodleStartIndexes.current[currentDoodleStartIndexes.current.length - 1];
-      if (lastRecordedIndex !== currentDoodle.current.length) {
-        currentDoodleStartIndexes.current.push(currentDoodle.current.length);
-      }
+    if (currentGesture.current.length > 0) {
+      currentDoodle.current.push(currentGesture.current);
+      currentGesture.current = [];
+      setUndoAvailable(true);
     }
-    setUndoAvailable(true);
-  }
-
-
-  const handleMouseDown = () => {
-    if (!editEnabled) return;
-    recordStrokeForUndo();
-    // currentDoodleStartIndexes.current.push(currentDoodle.current.length);
-    // setUndoAvailable(true);
   }
 
   const handleMouseMove = (e) => {
@@ -175,9 +160,19 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const handleTouchEnd = (e) => {
+    if (editEnabled && !holdForPan) {
+      recordStrokeForUndo();
+    }
+
     if (e.targetTouches.length === 0) {
       setHoldForPan(false);
       return;
+    }
+  }
+
+  const handleMouseUp = (e) => {
+    if (editEnabled) {
+      recordStrokeForUndo();
     }
   }
 
@@ -198,10 +193,6 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
     setX(myX);
     setY(myY);
-
-    recordStrokeForUndo();
-    // currentDoodleStartIndexes.current.push(currentDoodle.current.length);
-    // setUndoAvailable(true);
   }
 
   const handleTouchMove = (e) => {
@@ -238,7 +229,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const draw = (newX, newY) => {
-    if (currentDoodle.current.length >= 750) {
+    if ((currentDoodle.current.flat(1).length + currentGesture.current.length) >= 750) {
       return;
     }
 
@@ -253,18 +244,16 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     ctx.moveTo(x, y); // from
     ctx.lineTo(newX, newY); // to
     ctx.stroke(); // draw it!
-    currentDoodle.current.push([x, y, newX, newY, selectedColor]);
+    currentGesture.current.push([x, y, newX, newY, selectedColor]);
   }
 
   const handleUndo = () => {
-    const lastStrokeEndIndex = currentDoodleStartIndexes.current.pop();
-    currentDoodle.current = currentDoodle.current.splice(0, lastStrokeEndIndex);
+    currentDoodle.current.pop();
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
     fastReDraw();
-
     reDrawCurrentDoodle();
 
-    if (currentDoodle.current.length < 1) {
+    if (currentDoodle.current.length === 0) {
       setUndoAvailable(false);
     }
   }
@@ -279,7 +268,9 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
     if (currentDoodle.current.length > 0 && fetchedDoodles.length < MAX_ALLOWED_DOODLES) {
       // post your doodle!
-      postDoodle(currentDoodle.current);
+      // currentDoodle.current is an array of gestures
+      // flatten it before posting
+      postDoodle(currentDoodle.current.flat(1));
       currentDoodle.current = [];
     } else {
       ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
@@ -294,21 +285,23 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const reDrawCurrentDoodle = (newColor = null) => {
-    currentDoodle.current.forEach((step) => {
-      if (newColor) step[4] = newColor;
-      const rX = step[0];
-      const rY = step[1];
-      const rNewX = step[2];
-      const rNewY = step[3];
-      const hexColor = step[4] || '#000000';
-      ctx.beginPath(); // begin
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = hexColor;
-      ctx.moveTo(rX, rY); // from
-      ctx.lineTo(rNewX, rNewY); // to
-      ctx.stroke(); // draw it!
-    })
+    currentDoodle.current.forEach((gesture) => {
+      gesture.forEach(step => {
+        if (newColor) step[4] = newColor;
+        const rX = step[0];
+        const rY = step[1];
+        const rNewX = step[2];
+        const rNewY = step[3];
+        const hexColor = step[4] || '#000000';
+        ctx.beginPath(); // begin
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = hexColor;
+        ctx.moveTo(rX, rY); // from
+        ctx.lineTo(rNewX, rNewY); // to
+        ctx.stroke(); // draw it!
+      });
+    });
   }
 
   const fastReDraw = () => {
@@ -389,8 +382,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           width="600" 
           height="1000"
           className={editEnabled ? 'DoodleCanvasEdit' : 'DoodleCanvas'}
-          onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
