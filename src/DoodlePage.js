@@ -238,6 +238,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const draw = (newX, newY) => {
+    if (x < 0 || x < 0 || newX < 0 || newY < 0) return;
     if ((currentDoodle.current.flat(1).length + currentGesture.current.length) >= 750) {
       return;
     }
