@@ -95,7 +95,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         if (response.doodles) setFetchedDoodles(response.doodles);
         ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
 
-        if (window.history.replaceState) {
+        if (window.history.replaceState && response.doodle_id) {
           const newurl = `${window.location.protocol}//${window.location.host}/${response.doodle_id}`;
           window.history.replaceState({ path: newurl }, '', newurl);
         }
