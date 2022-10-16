@@ -476,8 +476,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
               )
             }
             <p className='HelpText'>
-              Tap "Add a doodle" and draw a new doodle 
-              <strong>. Tip:</strong> Zoom in for easier doodling
+              Tap "Add a doodle" and draw a new doodle.
+              <strong> Zoom in for easier doodling</strong>
             </p>
             <p className='HelpText'>
               Tap "Share this Dickerdoodle" and send it to a friend! 
