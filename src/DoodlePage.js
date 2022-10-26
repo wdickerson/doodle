@@ -33,6 +33,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [fetchedDoodles, setFetchedDoodles] = useState([]);
   const [fetchPending, setFetchPending] = useState(false);
   const [postPending, setPostPending] = useState(false);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
   useEffect(() => {
     // lets fetch doodles
@@ -122,18 +123,19 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         await navigator.share(shareDetails);
       } catch (error) {
         navigator.clipboard.writeText(shareUrl);
-        // setCopiedToClipboard(true);
+        setCopiedToClipboard(true);
       }
     } else {
       // fallback code
       navigator.clipboard.writeText(shareUrl);
-      // setCopiedToClipboard(true);
+      setCopiedToClipboard(true);
     }
   };
 
 
 
   const handleNew = () => {
+    setCopiedToClipboard(false);
     if (window.history.replaceState) {
       const newurl = `${window.location.protocol}//${window.location.host}`;
       window.history.replaceState({ path: newurl }, '', newurl);
@@ -270,6 +272,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   const handleAdd = () => {
     setEditEnabled(true);
+    setCopiedToClipboard(false);
     fastReDraw();
   }
 
@@ -338,6 +341,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
 
   const reDraw = () => {
+    setCopiedToClipboard(false);
     ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
 
     const timeDelays = [0]
@@ -371,7 +375,9 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
   if (editEnabled) {
     infoText = '';
-  } else if (fetchPending) {
+  } else if (copiedToClipboard) {
+    infoText = 'The link to this Dickerdoodle was copied to your clipboard!';
+  } else if (postPending) {
     infoText = 'Looking for doodles...';
   } else if (postPending) {
     infoText = 'Beautiful! Please wait';
