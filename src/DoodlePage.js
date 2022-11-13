@@ -377,7 +377,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     infoText = '';
   } else if (copiedToClipboard) {
     infoText = 'The link to this Dickerdoodle was copied to your clipboard!';
-  } else if (postPending) {
+  } else if (fetchPending) {
     infoText = 'Looking for doodles...';
   } else if (postPending) {
     infoText = 'Beautiful! Please wait';
