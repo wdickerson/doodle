@@ -36,7 +36,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
   useEffect(() => {
-    // lets fetch doodles
+    // Fetch the doodles by ID
     if (doodleId) {
       getDoodles();
     }
@@ -64,14 +64,12 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         if (response.doodles) {
           setFetchedDoodles(response.doodles);
         } else {
-          // For now, if we get an error, assume the ID is bad and redirect
+          // For now, if we get an unexpected response, assume the ID is bad and redirect
           if (window.history.replaceState) {
             const newurl = `${window.location.protocol}//${window.location.host}`;
             window.history.replaceState({ path: newurl }, '', newurl);
           }
         }
-        // setFetchedPhotos(searchResponse.results || []);
-        // setSearchPending(false);
       },
       (err) => {
         setFetchPending(false);
@@ -126,7 +124,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         setCopiedToClipboard(true);
       }
     } else {
-      // fallback code
+      // fallback code (ie, if accessing from PC without share api)
       navigator.clipboard.writeText(shareUrl);
       setCopiedToClipboard(true);
     }
@@ -161,8 +159,14 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const handleMouseMove = (e) => {
     if (!editEnabled) return;
     if (dampen()) return;
-    const myX = e.nativeEvent.offsetX * 2;
-    const myY = e.nativeEvent.offsetY * 2;
+
+    // Why * 2?
+    // Our canvas has a logical size of 600x1000.
+    // It's HTML element has a display width of 300px by 500px.
+    // (Width is set in CSS, height maintains canvas aspect ratio.)
+    // This result in a "higher resolution" drawing, especially when zooming.
+    const myX = Math.max(e.nativeEvent.offsetX * 2, 0);
+    const myY = Math.max(e.nativeEvent.offsetY * 2, 0);
     setX(myX);
     setY(myY);
     if (e.buttons !== 1) return;
@@ -198,8 +202,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     const pageY = e.targetTouches[0].pageY;
     const offsetLeft = e.targetTouches[0].target.offsetLeft;
     const offsetTop = e.targetTouches[0].target.offsetTop;
-    const myX = parseInt((pageX - offsetLeft) * 2);
-    const myY = parseInt((pageY - offsetTop) * 2);
+    const myX = Math.max(parseInt((pageX - offsetLeft) * 2), 0);
+    const myY = Math.max(parseInt((pageY - offsetTop) * 2), 0);
 
     setX(myX);
     setY(myY);
@@ -219,8 +223,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     
     const offsetLeft = e.targetTouches[0].target.offsetLeft;
     const offsetTop = e.targetTouches[0].target.offsetTop;
-    const myX = parseInt((pageX - offsetLeft) * 2);
-    const myY = parseInt((pageY - offsetTop) * 2);
+    const myX = Math.max(parseInt((pageX - offsetLeft) * 2), 0);
+    const myY = Math.max(parseInt((pageY - offsetTop) * 2), 0);
 
     setX(myX);
     setY(myY);
@@ -400,6 +404,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           className={editEnabled ? 'DoodleCanvasEdit' : 'DoodleCanvas'}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
