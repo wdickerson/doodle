@@ -35,9 +35,8 @@
 }
 
 .DoodlePage {
-  margin: 24px auto;
+  margin: 24px auto 0px;
   width: 300px;
-  padding: 0 0 12px;
 }
 
 .DoodleCanvasEdit {
@@ -114,6 +113,7 @@
   padding: 0 8px;
   border: none;
   border-radius: 4px;
+  margin: 6px 3px;
 }
 
 .GreenButton {
@@ -146,7 +146,7 @@
 }
 
 .FooterText {
-  margin: 32px 4px 12px;
+  padding: 18px;
   color: var(--darkGray);
   font-size: 14px;
 }

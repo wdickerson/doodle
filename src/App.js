@@ -1,6 +1,7 @@
 import './App.css';
 import GameHeader from './GameHeader.js';
 import DoodlePage from './DoodlePage.js';
+import Footer from './Footer.js';
 import React, {useState} from 'react';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         setEditEnabled={setEditEnabled} 
         doodleId={doodleId}
       />
+      <Footer />
     </div>
   );
 }

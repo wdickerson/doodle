@@ -1,35 +1,33 @@
 import { useRef, useEffect, useState } from 'react'
+import { 
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+  COLORS,
+  clearCanvas,
+  instantRedrawSingleDoodle, 
+  animatedRedrawDoodles, 
+  instantRedrawDoodles, 
+  drawStroke, 
+} from './CanvasHelpers'
+import ColorSelector from './ColorSelector.js';
+import Button from './Button.js';
+import Instructions from './Instructions.js';
 
 const API_HOST = process.env.REACT_APP_DOODLE_API_HOST;
-
-/********* 
-colors
-black: #000000
-blue: #0000FF
-red: #FF0000
-green: #008000
-yellow: #FFFF00
-**********/
-
-const BLACK = '#000000';
-const BLUE = '#0000FF';
-const RED = '#FF0000';
-const GREEN = '#008000';
-const YELLOW = '#DDCB00';
 
 const MAX_ALLOWED_DOODLES = 16;
 
 const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const myCanvas = useRef(null);
-  const [holdForPan, setHoldForPan] = useState(false);
-  const [ctx, setCtx] = useState(null);
-  const [x, setX] = useState(0);
-  const [y, setY] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(BLACK);
-  const [undoAvailable, setUndoAvailable] = useState(false);
+  const x = useRef(0);
+  const y = useRef(0);
   const currentDoodle = useRef([]);
   const currentGesture = useRef([]);
   const dampener = useRef(0);
+  const [holdForPan, setHoldForPan] = useState(false);
+  const [ctx, setCtx] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(COLORS.black);
+  const [undoAvailable, setUndoAvailable] = useState(false);
   const [fetchedDoodles, setFetchedDoodles] = useState([]);
   const [fetchPending, setFetchPending] = useState(false);
   const [postPending, setPostPending] = useState(false);
@@ -40,7 +38,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     if (doodleId) {
       getDoodles();
     }
-  }, []);
+  }, [doodleId]);
 
   useEffect(() => {
     if (myCanvas.current) {
@@ -92,7 +90,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       body: JSON.stringify(doodle)
     }).then(res => res.json()).then((response) => {
         if (response.doodles) setFetchedDoodles(response.doodles);
-        ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+        clearCanvas(ctx);
 
         if (window.history.replaceState && response.doodle_id) {
           const newurl = `${window.location.protocol}//${window.location.host}/${response.doodle_id}`;
@@ -130,8 +128,6 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     }
   };
 
-
-
   const handleNew = () => {
     setCopiedToClipboard(false);
     if (window.history.replaceState) {
@@ -139,7 +135,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       window.history.replaceState({ path: newurl }, '', newurl);
     }
     setFetchedDoodles([]);
-    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+    clearCanvas(ctx);
   };
 
   const recordGestureForUndo = () => {
@@ -167,10 +163,12 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     // This result in a "higher resolution" drawing, especially when zooming.
     const myX = Math.max(e.nativeEvent.offsetX * 2, 0);
     const myY = Math.max(e.nativeEvent.offsetY * 2, 0);
-    setX(myX);
-    setY(myY);
-    if (e.buttons !== 1) return;
-    draw(myX, myY);
+    if (e.buttons === 1) {
+      draw(myX, myY);
+    } else {
+      x.current = myX;
+      y.current = myY;
+    }
   }
 
   const handleTouchEnd = (e) => {
@@ -205,8 +203,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     const myX = Math.max(parseInt((pageX - offsetLeft) * 2), 0);
     const myY = Math.max(parseInt((pageY - offsetTop) * 2), 0);
 
-    setX(myX);
-    setY(myY);
+    x.current = myX;
+    y.current = myY;
   }
 
   const handleTouchMove = (e) => {
@@ -226,8 +224,6 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     const myX = Math.max(parseInt((pageX - offsetLeft) * 2), 0);
     const myY = Math.max(parseInt((pageY - offsetTop) * 2), 0);
 
-    setX(myX);
-    setY(myY);
     if (!holdForPan) draw(myX, myY);
   }
 
@@ -244,7 +240,8 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const draw = (newX, newY) => {
-    if (x < 0 || x < 0 || newX < 0 || newY < 0) return;
+    if (x.current < 0 || x.current < 0 || newX < 0 || newY < 0) return;
+
     if ((currentDoodle.current.flat(1).length + currentGesture.current.length) >= 750) {
       return;
     }
@@ -253,21 +250,17 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       return;
     }
 
-    ctx.beginPath(); // begin
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = selectedColor;
-    ctx.moveTo(x, y); // from
-    ctx.lineTo(newX, newY); // to
-    ctx.stroke(); // draw it!
-    currentGesture.current.push([x, y, newX, newY, selectedColor]);
+    drawStroke(ctx, x.current, y.current, newX, newY, selectedColor)
+    
+    currentGesture.current.push([x.current, y.current, newX, newY, selectedColor]);
+    x.current = newX;
+    y.current = newY;
   }
 
   const handleUndo = () => {
     currentDoodle.current.pop();
-    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
-    fastReDraw();
-    reDrawCurrentDoodle();
+    instantRedrawDoodles(ctx, fetchedDoodles);
+    instantRedrawSingleDoodle(ctx, currentDoodle.current);
 
     if (currentDoodle.current.length === 0) {
       setUndoAvailable(false);
@@ -277,7 +270,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const handleAdd = () => {
     setEditEnabled(true);
     setCopiedToClipboard(false);
-    fastReDraw();
+    instantRedrawDoodles(ctx, fetchedDoodles);
   }
 
   const handleDone = () => {
@@ -290,89 +283,19 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
       postDoodle(currentDoodle.current.flat(1));
       currentDoodle.current = [];
     } else {
-      ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
+      clearCanvas(ctx);
     }
   }
 
   const changeColor = (newColor) => {
     setSelectedColor(newColor);
-    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
-    fastReDraw();
-    reDrawCurrentDoodle(newColor);
+    instantRedrawDoodles(ctx, fetchedDoodles);
+    instantRedrawSingleDoodle(ctx, currentDoodle.current, newColor);
   }
-
-  const reDrawCurrentDoodle = (newColor = null) => {
-    currentDoodle.current.forEach((gesture) => {
-      gesture.forEach(step => {
-        if (newColor) step[4] = newColor;
-        const rX = step[0];
-        const rY = step[1];
-        const rNewX = step[2];
-        const rNewY = step[3];
-        const hexColor = step[4] || '#000000';
-        ctx.beginPath(); // begin
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = hexColor;
-        ctx.moveTo(rX, rY); // from
-        ctx.lineTo(rNewX, rNewY); // to
-        ctx.stroke(); // draw it!
-      });
-    });
-  }
-
-  const fastReDraw = () => {
-    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
-
-    fetchedDoodles.forEach((doodle, i) => {
-      doodle.forEach((step, j) => {
-        const rX = step[0];
-        const rY = step[1];
-        const rNewX = step[2];
-        const rNewY = step[3];
-        const hexColor = step[4] || '#000000';
-        ctx.beginPath(); // begin
-        ctx.lineWidth = 1;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = hexColor;
-        // ctx.strokeStyle = '#000000';
-        ctx.moveTo(rX, rY); // from
-        ctx.lineTo(rNewX, rNewY); // to
-        ctx.stroke(); // draw it!
-      })
-    })
-  }
-
 
   const reDraw = () => {
     setCopiedToClipboard(false);
-    ctx.clearRect(0, 0, myCanvas.current.width, myCanvas.current.height);
-
-    const timeDelays = [0]
-    fetchedDoodles.forEach((doodle, i) => {
-      timeDelays.push(timeDelays[i] + (doodle.length * 5));
-    });
-
-    fetchedDoodles.forEach((doodle, i) => {
-      setTimeout(() => {
-        doodle.forEach((step, j) => {
-          setTimeout(() => {
-            const rX = step[0];
-            const rY = step[1];
-            const rNewX = step[2];
-            const rNewY = step[3];
-            const hexColor = step[4] || '#000000';
-            ctx.beginPath(); // begin
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = hexColor;
-            ctx.moveTo(rX, rY); // from
-            ctx.lineTo(rNewX, rNewY); // to
-            ctx.stroke(); // draw it!
-          }, (j * 5))
-        })
-      }, timeDelays[i] + (i * 500))
-    })
+    animatedRedrawDoodles(ctx, fetchedDoodles);
   }
 
   let infoText = 'There are no doodles yet!';
@@ -394,13 +317,11 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   } 
 
   return (
-      <div 
-        className='DoodlePage'
-      >
+      <div className='DoodlePage'>
         <canvas 
           ref={myCanvas}
-          width="600" 
-          height="1000"
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
           className={editEnabled ? 'DoodleCanvasEdit' : 'DoodleCanvas'}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -409,102 +330,58 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         />
-
         <p>{infoText}</p>
-
         {editEnabled && (
           <>
             <div className='ColorSelectors'>
-              {selectedColor === BLACK && <div className='ColorSelector ColorBlack ColorSelected' />}
-              {selectedColor !== BLACK && <div className='ColorSelector ColorBlack' onClick={() => changeColor(BLACK)} />}
-              {selectedColor === BLUE && <div className='ColorSelector ColorBlue ColorSelected' />}
-              {selectedColor !== BLUE && <div className='ColorSelector ColorBlue' onClick={() => changeColor(BLUE)} />}
-              {selectedColor === RED && <div className='ColorSelector ColorRed ColorSelected' />}
-              {selectedColor !== RED && <div className='ColorSelector ColorRed' onClick={() => changeColor(RED)} />}
-              {selectedColor === GREEN && <div className='ColorSelector ColorGreen ColorSelected' />}
-              {selectedColor !== GREEN && <div className='ColorSelector ColorGreen' onClick={() => changeColor(GREEN)} />}
-              {selectedColor === YELLOW && <div className='ColorSelector ColorYellow ColorSelected' />}
-              {selectedColor !== YELLOW && <div className='ColorSelector ColorYellow' onClick={() => changeColor(YELLOW)} />}
+              <ColorSelector color={COLORS.black} selectedColor={selectedColor} changeColor={changeColor} />
+              <ColorSelector color={COLORS.blue} selectedColor={selectedColor} changeColor={changeColor} />
+              <ColorSelector color={COLORS.red} selectedColor={selectedColor} changeColor={changeColor} />
+              <ColorSelector color={COLORS.green} selectedColor={selectedColor} changeColor={changeColor} />
+              <ColorSelector color={COLORS.yellow} selectedColor={selectedColor} changeColor={changeColor} />
             </div>
-            <button 
+            <Button 
               className='SettingsButton'
               onClick={handleUndo}
               disabled={!undoAvailable}
-            >
-              Undo
-            </button>
-            <span>&nbsp;</span>
-            <button 
+              text='Undo'
+            />
+            <Button 
               className='SettingsButton GreenButton'
               onClick={handleDone}
-            >
-              Done!
-            </button>
+              text='Done!'
+            />
             <p className='ZoomText'>Zoom in for easier doodling!</p>
           </>
         )}
-
         {!editEnabled && (
           <>
-            <button 
+            <Button 
               className='SettingsButton'
               onClick={handleAdd}
               disabled={fetchPending || postPending || fetchedDoodles.length >= MAX_ALLOWED_DOODLES}
-            >
-              Add a Doodle
-            </button>
-            <span>&nbsp;</span>
-          </>
-        )}
-
-        {!editEnabled && fetchedDoodles.length > 0 && (
-          <button 
-            className='SettingsButton'
-            onClick={reDraw}
-            disabled={fetchPending || postPending}
-          >
-            See the Doodles!
-          </button>
-        )}
-        <p></p>
-        
-        {!editEnabled && (
-          <button 
-            className='SettingsButton GreenButton'
-            onClick={handleShare}
-            disabled={!fetchedDoodles || fetchedDoodles.length === 0}
-          >
-            Share this Dickerdoodle!
-          </button>
-        )}
-
-        {!editEnabled && (
-          <>
-            <p className='HelpTitle'>How to Play</p>
-            {
-              fetchedDoodles.length > 0 && (
-                <p className='HelpText'>Tap "See the doodles" to see what others have drawn</p>
-              )
-            }
-            <p className='HelpText'>
-              Tap "Add a doodle" and draw a new doodle.
-              <strong> Zoom in for easier doodling</strong>
-            </p>
-            <p className='HelpText'>
-              Tap "Share this Dickerdoodle" and send it to a friend! 
-            </p>
-            <button className='SettingsButton' onClick={handleNew}>
-              Start a new Dickerdoodle
-            </button>
-            <p className='FooterText'>
-              Created by William Dickerson 
-              <a className="link" href="https://github.com/wdickerson">
-                  <i className="fa fa-github"></i>
-              </a>
-              <a className="link" href="https://www.linkedin.com/in/wdickerson08">
-                  <i className="fa fa-linkedin-square"></i>
-              </a> 
-            </p>
+              text='Add a Doodle'
+            />
+            {fetchedDoodles.length > 0 && (
+              <Button 
+                className='SettingsButton'
+                onClick={reDraw}
+                disabled={fetchPending || postPending}
+                text='See the Doodles!'
+              />
+            )}
+            <Button 
+              className='SettingsButton GreenButton'
+              onClick={handleShare}
+              disabled={!fetchedDoodles || fetchedDoodles.length === 0}
+              text='Share this Dickerdoodle!'
+            />
+            <Instructions />
+            <Button 
+              className='SettingsButton'
+              onClick={handleNew}
+              text='Start a new Dickerdoodle!'
+            />
           </>
         )}
       </div>
