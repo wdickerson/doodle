@@ -109,11 +109,11 @@
   background-color: var(--lighterGray);
   color: black;
   height: 34px;
-  font-size: 16px;
+  font-size: 15px;
   padding: 0 8px;
   border: none;
   border-radius: 4px;
-  margin: 6px 3px;
+  margin: 6px 2px;
 }
 
 .GreenButton {
@@ -124,7 +124,6 @@
   background-color: var(--lighterGray);
   color: var(--darkGrayTransparent);
   height: 34px;
-  font-size: 16px;
   padding: 0 8px;
   border: none;
 }

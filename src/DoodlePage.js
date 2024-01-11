@@ -9,7 +9,7 @@ import {
   instantRedrawDoodles, 
   drawStroke, 
 } from './CanvasHelpers'
-import ColorSelector from './ColorSelector.js';
+import ColorSelectors from './ColorSelectors.js';
 import Button from './Button.js';
 import Instructions from './Instructions.js';
 
@@ -17,13 +17,27 @@ const API_HOST = process.env.REACT_APP_DOODLE_API_HOST;
 
 const MAX_ALLOWED_DOODLES = 16;
 
-const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
+const getUrlForDoodleId = (doodleId = '') => {
+  const doodleIdPart = doodleId ? `/${doodleId}` : '';
+  return `${window.location.protocol}//${window.location.host}${doodleIdPart}`;
+}
+
+const updateUrlWithDoodleId = (doodleId = '') => {
+  if (window.history.replaceState) {
+    const newUrl = getUrlForDoodleId(doodleId);
+    window.history.replaceState({ path: newUrl }, '', newUrl);
+  }
+}
+
+const DoodlePage = () => {
   const myCanvas = useRef(null);
   const x = useRef(0);
   const y = useRef(0);
   const currentDoodle = useRef([]);
   const currentGesture = useRef([]);
   const dampener = useRef(0);
+  const [doodleId, setDoodleId] = useState('');
+  const [editEnabled, setEditEnabled] = useState(false);
   const [holdForPan, setHoldForPan] = useState(false);
   const [ctx, setCtx] = useState(null);
   const [selectedColor, setSelectedColor] = useState(COLORS.black);
@@ -34,11 +48,36 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
   useEffect(() => {
+    const initialDoodleId = window.location.pathname.split('/')[1] || '';
     // Fetch the doodles by ID
-    if (doodleId) {
-      getDoodles();
+    if (initialDoodleId) {
+      setFetchPending(true);
+    
+      fetch(`${API_HOST}/doodles/${initialDoodleId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      }).then(res => res.json()).then((response) => {
+        setFetchPending(false);
+          if (response.doodles) {
+            setFetchedDoodles(response.doodles);
+            setDoodleId(initialDoodleId);
+          } else {
+            // For now, if we get an unexpected response, assume the ID is bad and redirect
+            updateUrlWithDoodleId('');
+          }
+        },
+        (err) => {
+          setFetchPending(false);
+          console.log('There was an error getting doodles');
+          console.log(err);
+          // For now, if we get an error, assume the ID is bad and redirect
+          updateUrlWithDoodleId('');
+        }
+      );
     }
-  }, [doodleId]);
+  }, []);
 
   useEffect(() => {
     if (myCanvas.current) {
@@ -46,55 +85,17 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     }
   }, [myCanvas]);
 
-  const getDoodles = () => {
-    if (!doodleId) {
-      return;
-    }
-    setFetchPending(true);
-    
-    fetch(`${API_HOST}/doodles/${doodleId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    }).then(res => res.json()).then((response) => {
-      setFetchPending(false);
-        if (response.doodles) {
-          setFetchedDoodles(response.doodles);
-        } else {
-          // For now, if we get an unexpected response, assume the ID is bad and redirect
-          if (window.history.replaceState) {
-            const newurl = `${window.location.protocol}//${window.location.host}`;
-            window.history.replaceState({ path: newurl }, '', newurl);
-          }
-        }
-      },
-      (err) => {
-        setFetchPending(false);
-        console.log('There was an error getting doodles');
-        console.log(err);
-
-        // For now, if we get an error, assume the ID is bad and redirect
-        if (window.history.replaceState) {
-          const newurl = `${window.location.protocol}//${window.location.host}`;
-          window.history.replaceState({ path: newurl }, '', newurl);
-        }
-      }
-    );
-  }
-
   const postDoodle = (doodle) => {
     setPostPending(true);
     fetch(`${API_HOST}/doodles/${doodleId}`, {
       method: 'POST',
       body: JSON.stringify(doodle)
     }).then(res => res.json()).then((response) => {
-        if (response.doodles) setFetchedDoodles(response.doodles);
         clearCanvas(ctx);
-
-        if (window.history.replaceState && response.doodle_id) {
-          const newurl = `${window.location.protocol}//${window.location.host}/${response.doodle_id}`;
-          window.history.replaceState({ path: newurl }, '', newurl);
+        if (response.doodles) setFetchedDoodles(response.doodles);
+        if (response.doodle_id) {
+          setDoodleId(response.doodle_id);
+          updateUrlWithDoodleId(response.doodle_id);
         }
         setPostPending(false);
       },
@@ -106,34 +107,28 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
     );
   }
 
-  const shareUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}${window.location.search}`;
-  const shareDetails = { 
-    url: shareUrl, 
-    title: 'Dickerdoodle!', 
-    text: 'See the doodles and add your own!'
-  }
-
   const handleShare = async () => {
     if (navigator.share) {
       try {
-        await navigator.share(shareDetails);
+        await navigator.share({ 
+          url: getUrlForDoodleId(doodleId), 
+          title: 'Dickerdoodle!', 
+          text: 'See the doodles and add your own!'
+        });
       } catch (error) {
-        navigator.clipboard.writeText(shareUrl);
+        navigator.clipboard.writeText(getUrlForDoodleId(doodleId));
         setCopiedToClipboard(true);
       }
     } else {
-      // fallback code (ie, if accessing from PC without share api)
-      navigator.clipboard.writeText(shareUrl);
+      navigator.clipboard.writeText(getUrlForDoodleId(doodleId));
       setCopiedToClipboard(true);
     }
   };
 
   const handleNew = () => {
     setCopiedToClipboard(false);
-    if (window.history.replaceState) {
-      const newurl = `${window.location.protocol}//${window.location.host}`;
-      window.history.replaceState({ path: newurl }, '', newurl);
-    }
+    updateUrlWithDoodleId('');
+    setDoodleId('');
     setFetchedDoodles([]);
     clearCanvas(ctx);
   };
@@ -158,7 +153,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
 
     // Why * 2?
     // Our canvas has a logical size of 600x1000.
-    // It's HTML element has a display width of 300px by 500px.
+    // Its HTML element has a display width of 300px by 500px.
     // (Width is set in CSS, height maintains canvas aspect ratio.)
     // This result in a "higher resolution" drawing, especially when zooming.
     const myX = Math.max(e.nativeEvent.offsetX * 2, 0);
@@ -240,18 +235,21 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
   }
 
   const draw = (newX, newY) => {
+    // If off the canvas, do nothing
     if (x.current < 0 || x.current < 0 || newX < 0 || newY < 0) return;
 
+    // If doodle is too long, do nothing
     if ((currentDoodle.current.flat(1).length + currentGesture.current.length) >= 750) {
       return;
     }
 
+    // If identical to previous stroke, do nothing
     if (isRepeatedStroke([x, y, newX, newY, selectedColor])) {
       return;
     }
 
+    // Draw the stroke, and update x and y
     drawStroke(ctx, x.current, y.current, newX, newY, selectedColor)
-    
     currentGesture.current.push([x.current, y.current, newX, newY, selectedColor]);
     x.current = newX;
     y.current = newY;
@@ -333,13 +331,7 @@ const DoodlePage = ({ editEnabled, setEditEnabled, doodleId }) => {
         <p>{infoText}</p>
         {editEnabled && (
           <>
-            <div className='ColorSelectors'>
-              <ColorSelector color={COLORS.black} selectedColor={selectedColor} changeColor={changeColor} />
-              <ColorSelector color={COLORS.blue} selectedColor={selectedColor} changeColor={changeColor} />
-              <ColorSelector color={COLORS.red} selectedColor={selectedColor} changeColor={changeColor} />
-              <ColorSelector color={COLORS.green} selectedColor={selectedColor} changeColor={changeColor} />
-              <ColorSelector color={COLORS.yellow} selectedColor={selectedColor} changeColor={changeColor} />
-            </div>
+            <ColorSelectors selectedColor={selectedColor} changeColor={changeColor} />
             <Button 
               className='SettingsButton'
               onClick={handleUndo}
